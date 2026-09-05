@@ -9,7 +9,7 @@
     <title>Aislamiento Acústico — Registro de Campo</title>
     
     <!-- Manifesto dinámico PWA -->
-    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIlJlZ2lzdHJvIGRlIENhbXBvIEFjdXN0aWNhIiwKICAic2hvcnRfbmFtZSI6ICJBY3VzdGljYUFwcCIsCiAgInN0YXJ0X3VybCI6ICIuIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjMWUzYThhIiwKICAidGhlbWVfY29sb3IiOiAiIzFlM2E4YSIKZX0=">
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIkFpc2xhbWllbnRvIEFjw7pzdGljbyIsCiAgInNob3J0X25hbWUiOiAiQWN1c3RpY2EiLAogICJzdGFydF91cmwiOiAiLiIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiI2Y4ZmFmYyIsCiAgInRoZW1lX2NvbG9yIjogIiMxZTNhOGEiLAogICJpY29ucyI6IFsKICAgIHsKICAgICAgInNyYyI6ICJpY29uby5wbmciLAogICAgICAic2l6ZXMiOiAiMTkyeDE5MiIsCiAgICAgICJ0eXBlIjogImltYWdlL3BuZyIKICAgIH0KICBdCn0=">
 
     <style>
         :root {
@@ -35,7 +35,6 @@
         .header-title { display: flex; align-items: center; gap: 8px; }
         .header-title h1 { font-size: 0.9rem; }
         
-        /* LOGO SONÓMETRO SVG */
         .icon-sonometro {
             width: 22px;
             height: 22px;
@@ -188,15 +187,11 @@
 
     <header class="no-print">
         <div class="header-title">
-            <!-- LOGO ICONO SONÓMETRO -->
             <svg class="icon-sonometro" viewBox="0 0 24 24">
-                <!-- Pantalla del sonómetro -->
                 <rect x="7" y="10" width="10" height="11" rx="2" />
                 <line x1="9" y1="13" x2="15" y2="13" />
                 <line x1="9" y1="16" x2="12" y2="16" />
-                <!-- Cuello / Cono -->
                 <path d="M10 10 L11 6 L13 6 L14 10" />
-                <!-- Micrófono (Cápsula superior) -->
                 <circle cx="12" cy="4" r="2.5" fill="#38bdf8" />
             </svg>
             <h1>Aislamiento Acústico</h1>
@@ -205,13 +200,15 @@
     </header>
 
     <div class="card no-print">
-        <h2>1. Seleccionar Obra Activa</h2>
+        <h2>1. Seleccionar / Gestionar Obra</h2>
         <div class="grid-form">
             <div class="form-group" style="grid-column: span 2;">
                 <label>Obra en curso:</label>
                 <div style="display: flex; gap: 4px;">
                     <select id="select-obras" onchange="cambiarObraActiva(this.value)" style="font-weight: bold; color: var(--primary);"></select>
                     <button class="btn-new" onclick="crearNuevaObra()">+ Nueva</button>
+                    <!-- BOTÓN ELIMINAR OBRA SELECCIONADA -->
+                    <button class="btn-danger" onclick="eliminarObraActiva()" title="Eliminar este expediente definitivo">🗑️</button>
                 </div>
             </div>
             <div class="form-group">
@@ -232,7 +229,7 @@
                 <button id="btn-share" class="btn-share" onclick="compartirRespaldoRapido()">📲 Respaldar / Enviar</button>
                 <button id="btn-export-csv" class="btn-export">📥 CSV</button>
                 <button id="btn-imprimir" class="btn-print">🖨️ PDF</button>
-                <button id="btn-reset" class="btn-danger">Limpiar</button>
+                <button id="btn-reset" class="btn-danger">Reiniciar Tabla</button>
             </div>
         </div>
     </div>
@@ -299,15 +296,7 @@
             document.getElementById('fecha-actual').textContent = new Date().toLocaleDateString('es-ES');
             
             if (Object.keys(baseDatosObras).length === 0) {
-                const idInicial = 'obra_' + Date.now();
-                baseDatosObras[idInicial] = {
-                    nombre: "L'ELIANA 31552 - Edificio 22 viv.",
-                    sonometro: "CESVA SC420",
-                    contadorOrden: 0,
-                    listaMedidas: generarListaDinamica(3)
-                };
-                obraActivaID = idInicial;
-                guardarTodo();
+                crearObraPorDefecto();
             } else if (!obraActivaID || !baseDatosObras[obraActivaID]) {
                 obraActivaID = Object.keys(baseDatosObras)[0];
             }
@@ -316,6 +305,18 @@
             cargarObraEnPantalla();
             registrarServiceWorker();
         });
+
+        function crearObraPorDefecto() {
+            const idInicial = 'obra_' + Date.now();
+            baseDatosObras[idInicial] = {
+                nombre: "L'ELIANA 31552 - Edificio 22 viv.",
+                sonometro: "CESVA SC420",
+                contadorOrden: 0,
+                listaMedidas: generarListaDinamica(3)
+            };
+            obraActivaID = idInicial;
+            guardarTodo();
+        }
 
         function generarListaDinamica(n) {
             let numMedidas = parseInt(n);
@@ -357,6 +358,7 @@
 
         function cargarObraEnPantalla() {
             const obra = baseDatosObras[obraActivaID];
+            if (!obra) return;
             document.getElementById('proyecto-nombre').value = obra.nombre;
             document.getElementById('sonometro').value = obra.sonometro || '';
             renderTabla();
@@ -387,6 +389,27 @@
             guardarTodo();
             actualizarSelectorObras();
             cargarObraEnPantalla();
+        }
+
+        // FUNCIÓN PARA ELIMINAR EXPEDIENTES / OBRAS COMPLETADAS
+        function eliminarObraActiva() {
+            const obra = baseDatosObras[obraActivaID];
+            if (!obra) return;
+
+            if (confirm(`¿Estás seguro de que deseas eliminar definitivamente la obra:\n"${obra.nombre}"?`)) {
+                delete baseDatosObras[obraActivaID];
+
+                const IDsRestantes = Object.keys(baseDatosObras);
+                if (IDsRestantes.length > 0) {
+                    obraActivaID = IDsRestantes[0];
+                } else {
+                    crearObraPorDefecto();
+                }
+
+                guardarTodo();
+                actualizarSelectorObras();
+                cargarObraEnPantalla();
+            }
         }
 
         function renombrarObraActiva(nuevoNombre) {
