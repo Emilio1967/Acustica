@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1e3a8a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Aislamiento Acústico — Registro de Campo</title>
+    
+    <!-- Manifesto dinámico PWA -->
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIlJlZ2lzdHJvIGRlIENhbXBvIEFjdXN0aWNhIiwKICAic2hvcnRfbmFtZSI6ICJBY3VzdGljYUFwcCIsCiAgInN0YXJ0X3VybCI6ICIuIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjMWUzYThhIiwKICAidGhlbWVfY29sb3IiOiAiIzFlM2E4YSIKZX0=">
+
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-hover: #1e40af;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #0f172a;
+            --border: #cbd5e1;
+            --accent: #0284c7;
+            --success: #10b981;
+            
+            --bg-emision-th: #bae6fd;
+            --bg-emision-td: #f0f9ff;
+            --bg-recepcion-th: #fde68a;
+            --bg-recepcion-td: #fefce8;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); padding: 4px; max-width: 100%; margin: 0 auto; user-select: none; }
+
+        header { background: var(--primary); color: white; padding: 6px 10px; border-radius: 6px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
+        .header-title { display: flex; align-items: center; gap: 8px; }
+        .header-title h1 { font-size: 0.9rem; }
+        
+        /* LOGO SONÓMETRO SVG */
+        .icon-sonometro {
+            width: 22px;
+            height: 22px;
+            fill: none;
+            stroke: #38bdf8;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 6px; padding: 4px; margin-bottom: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .card h2 { font-size: 0.8rem; color: var(--primary); margin-bottom: 4px; border-bottom: 2px solid #e2e8f0; padding-bottom: 2px; }
+
+        .grid-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 4px; }
+        .form-group { display: flex; flex-direction: column; gap: 2px; }
+        .form-group label { font-size: 0.7rem; font-weight: 600; color: #475569; }
+
+        input, select {
+            padding: 5px 4px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.85rem;
+            width: 100%;
+        }
+
+        .input-vivienda { text-transform: uppercase; }
+
+        .input-recinto {
+            background-color: #fff;
+            text-align: left;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .btn-group { display: flex; gap: 4px; margin-bottom: 4px; flex-wrap: wrap; }
+        button {
+            padding: 5px 8px;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        .btn-save { background: var(--success); color: white; width: 100%; min-height: 32px; font-weight: bold; }
+        .btn-save:hover { background: #059669; }
+        .btn-export { background: #0284c7; color: white; }
+        .btn-share { background: #25d366; color: white; font-weight: bold; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-print { background: #64748b; color: white; }
+        .btn-new { background: #059669; color: white; }
+
+        .table-container { 
+            overflow-x: auto; 
+            -webkit-overflow-scrolling: touch; 
+            border: 1px solid var(--border); 
+            border-radius: 4px; 
+        }
+        
+        table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.8rem; min-width: 780px; }
+        th, td { padding: 4px 2px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); vertical-align: middle; }
+        
+        thead th { 
+            position: sticky; 
+            z-index: 10; 
+            text-align: center; 
+            font-weight: 700; 
+            color: #1e293b; 
+            font-size: 0.75rem; 
+        }
+        thead tr:nth-child(1) th { top: 0; }
+        thead tr:nth-child(2) th { top: 24px; }
+
+        .th-emision { background-color: var(--bg-emision-th) !important; }
+        .td-emision { background-color: var(--bg-emision-td); }
+        .td-emision input { background-color: #ffffff; }
+
+        .th-recepcion { background-color: var(--bg-recepcion-th) !important; }
+        .td-recepcion { background-color: var(--bg-recepcion-td); }
+        .td-recepcion input { background-color: #ffffff; }
+
+        .th-base { background-color: #f1f5f9; }
+
+        .col-orden { width: 40px; text-align: center; }
+        .col-medida { width: 85px; } 
+        .col-compacta { width: 55px; } 
+        .col-recinto { width: 135px; }  
+        .col-accion { width: 65px; }  
+        .col-notas { width: 110px; text-align: left !important; }
+        .col-notas input { text-align: left; }
+
+        tr.row-completada td { background-color: #f0fdf4 !important; }
+        tr.row-completada input { background-color: transparent; border-color: transparent; }
+
+        .badge-orden { background: var(--primary); color: white; padding: 2px 5px; border-radius: 3px; font-weight: bold; font-size: 0.8rem; }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.75);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+        .modal-card {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .modal-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin: 10px 0;
+        }
+        .btn-opcion-recinto {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            padding: 12px 6px;
+            font-size: 0.85rem;
+            color: #1e293b;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+
+        @media print {
+            header, .no-print, button, .action-cell, .modal-overlay { display: none !important; }
+            .card { border: none; box-shadow: none; padding: 0; }
+            .table-container { overflow: visible; border: none; }
+            table { border: 1px solid black; min-width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid black !important; padding: 3px; position: static !important; }
+            input { border: none; background: transparent; padding: 0; font-size: 0.75rem; }
+            .print-header { display: block !important; text-align: center; margin-bottom: 10px; border-bottom: 2px solid black; }
+        }
+        .print-header { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="print-header">
+        <h2>HOJA DE CAMPO — MEDICIONES ACÚSTICAS</h2>
+    </div>
+
+    <header class="no-print">
+        <div class="header-title">
+            <!-- LOGO ICONO SONÓMETRO -->
+            <svg class="icon-sonometro" viewBox="0 0 24 24">
+                <!-- Pantalla del sonómetro -->
+                <rect x="7" y="10" width="10" height="11" rx="2" />
+                <line x1="9" y1="13" x2="15" y2="13" />
+                <line x1="9" y1="16" x2="12" y2="16" />
+                <!-- Cuello / Cono -->
+                <path d="M10 10 L11 6 L13 6 L14 10" />
+                <!-- Micrófono (Cápsula superior) -->
+                <circle cx="12" cy="4" r="2.5" fill="#38bdf8" />
+            </svg>
+            <h1>Aislamiento Acústico</h1>
+        </div>
+        <span id="fecha-actual" style="font-size: 0.75rem;"></span>
+    </header>
+
+    <div class="card no-print">
+        <h2>1. Seleccionar Obra Activa</h2>
+        <div class="grid-form">
+            <div class="form-group" style="grid-column: span 2;">
+                <label>Obra en curso:</label>
+                <div style="display: flex; gap: 4px;">
+                    <select id="select-obras" onchange="cambiarObraActiva(this.value)" style="font-weight: bold; color: var(--primary);"></select>
+                    <button class="btn-new" onclick="crearNuevaObra()">+ Nueva</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Nombre / Expediente:</label>
+                <input type="text" id="proyecto-nombre" onchange="renombrarObraActiva(this.value)">
+            </div>
+            <div class="form-group">
+                <label>Sonómetro / Equipo:</label>
+                <input type="text" id="sonometro" placeholder="Ej: CESVA SC420" onchange="guardarMetadataObra()">
+            </div>
+        </div>
+    </div>
+
+    <div class="card no-print">
+        <div class="btn-group" style="justify-content: space-between; align-items: center; margin-bottom: 0;">
+            <h2 style="border: none; margin: 0; padding: 0;">2. Registro de Medidas</h2>
+            <div style="display: flex; gap: 4px;">
+                <button id="btn-share" class="btn-share" onclick="compartirRespaldoRapido()">📲 Respaldar / Enviar</button>
+                <button id="btn-export-csv" class="btn-export">📥 CSV</button>
+                <button id="btn-imprimir" class="btn-print">🖨️ PDF</button>
+                <button id="btn-reset" class="btn-danger">Limpiar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table id="tabla-medidas">
+            <thead>
+                <tr>
+                    <th rowspan="2" class="col-orden th-base">Nº Ord.</th>
+                    <th rowspan="2" class="col-medida th-base">Medida</th>
+                    <th colspan="2" class="th-emision">EMISIÓN</th>
+                    <th colspan="2" class="th-recepcion">RECEPCIÓN</th>
+                    <th rowspan="2" class="col-compacta th-base">Esc./Zag.</th>
+                    <th rowspan="2" class="action-cell no-print col-accion th-base">Acción</th>
+                    <th rowspan="2" class="col-notas th-base">Notas</th>
+                </tr>
+                <tr>
+                    <th class="th-emision col-recinto">Recinto</th>
+                    <th class="th-emision col-compacta">Viv.</th>
+                    <th class="th-recepcion col-recinto">Recinto</th>
+                    <th class="th-recepcion col-compacta">Viv.</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-body">
+            </tbody>
+        </table>
+    </div>
+
+    <!-- MODAL POPUP PARA SELECCIONAR RECINTO -->
+    <div id="modal-recinto" class="modal-overlay">
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <strong id="modal-titulo" style="font-size:0.9rem; color:var(--primary);">Seleccionar Recinto</strong>
+                <button onclick="cerrarModal()" style="background:#e2e8f0; padding:4px 8px;">✕</button>
+            </div>
+            
+            <div class="modal-grid">
+                <button class="btn-opcion-recinto" onclick="seleccionarOpcionModal('Comedor')">Comedor</button>
+                <button class="btn-opcion-recinto" onclick="seleccionarOpcionModal('Dormitorio')">Dormitorio</button>
+                <button class="btn-opcion-recinto" onclick="seleccionarOpcionModal('Cocina')">Cocina</button>
+                <button class="btn-opcion-recinto" onclick="seleccionarOpcionModal('Pasillo')">Pasillo</button>
+                <button class="btn-opcion-recinto" onclick="seleccionarOpcionModal('Aseo')">Aseo</button>
+                <button class="btn-opcion-recinto" onclick="seleccionarOpcionModal('ComedoryCocina')">ComedoryCocina</button>
+            </div>
+
+            <div style="margin-top: 8px; border-top: 1px solid #e2e8f0; padding-top: 8px;">
+                <label style="font-size:0.75rem; color:#64748b; font-weight:bold;">O escribir un texto personalizado:</label>
+                <div style="display:flex; gap:6px; margin-top:4px;">
+                    <input type="text" id="input-recinto-custom" placeholder="Otro recinto...">
+                    <button class="btn-export" onclick="aplicarCustomModal()">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let baseDatosObras = JSON.parse(localStorage.getItem('acustica_multiobra_v4')) || {};
+        let obraActivaID = localStorage.getItem('acustica_obra_activa_id_v4') || null;
+
+        let indexModalActivo = null;
+        let campoModalActivo = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('fecha-actual').textContent = new Date().toLocaleDateString('es-ES');
+            
+            if (Object.keys(baseDatosObras).length === 0) {
+                const idInicial = 'obra_' + Date.now();
+                baseDatosObras[idInicial] = {
+                    nombre: "L'ELIANA 31552 - Edificio 22 viv.",
+                    sonometro: "CESVA SC420",
+                    contadorOrden: 0,
+                    listaMedidas: generarListaDinamica(3)
+                };
+                obraActivaID = idInicial;
+                guardarTodo();
+            } else if (!obraActivaID || !baseDatosObras[obraActivaID]) {
+                obraActivaID = Object.keys(baseDatosObras)[0];
+            }
+
+            actualizarSelectorObras();
+            cargarObraEnPantalla();
+            registrarServiceWorker();
+        });
+
+        function generarListaDinamica(n) {
+            let numMedidas = parseInt(n);
+            if (isNaN(numMedidas) || numMedidas <= 0) numMedidas = 3;
+
+            const nombresProcesados = [];
+            for (let i = 1; i <= numMedidas; i++) nombresProcesados.push(`Fachada ${i}`);
+            nombresProcesados.push(`Cubierta 1`);
+            const numForjados = Math.max(1, numMedidas - 1);
+            for (let i = 1; i <= numForjados; i++) nombresProcesados.push(`Forjado ${i}`);
+            for (let i = 1; i <= numMedidas; i++) nombresProcesados.push(`Medianera ${i}`);
+            for (let i = 1; i <= numMedidas; i++) nombresProcesados.push(`Impacto ${i}`);
+
+            return nombresProcesados.map((nombre, index) => ({
+                idOriginal: index,
+                numOrden: null,
+                medida: nombre,
+                emisionRecinto: '',
+                emisionVivienda: '',
+                recepcionRecinto: '',
+                recepcionVivienda: '',
+                emisionEscalera: '',
+                notas: '',
+                completado: false
+            }));
+        }
+
+        function actualizarSelectorObras() {
+            const select = document.getElementById('select-obras');
+            select.innerHTML = '';
+            for (const id in baseDatosObras) {
+                const opt = document.createElement('option');
+                opt.value = id;
+                opt.textContent = baseDatosObras[id].nombre;
+                if (id === obraActivaID) opt.selected = true;
+                select.appendChild(opt);
+            }
+        }
+
+        function cargarObraEnPantalla() {
+            const obra = baseDatosObras[obraActivaID];
+            document.getElementById('proyecto-nombre').value = obra.nombre;
+            document.getElementById('sonometro').value = obra.sonometro || '';
+            renderTabla();
+        }
+
+        function cambiarObraActiva(idObra) {
+            obraActivaID = idObra;
+            localStorage.setItem('acustica_obra_activa_id_v4', obraActivaID);
+            cargarObraEnPantalla();
+        }
+
+        function crearNuevaObra() {
+            const nombre = prompt("Nombre o referencia de la nueva obra:", "Nueva Obra " + (Object.keys(baseDatosObras).length + 1));
+            if (!nombre) return;
+
+            const nInput = prompt("¿Cuántas medidas base (N) tiene esta obra?", "4");
+            const nVal = parseInt(nInput) || 4;
+
+            const nuevoID = 'obra_' + Date.now();
+            baseDatosObras[nuevoID] = {
+                nombre: nombre,
+                sonometro: document.getElementById('sonometro').value || '',
+                contadorOrden: 0,
+                listaMedidas: generarListaDinamica(nVal)
+            };
+
+            obraActivaID = nuevoID;
+            guardarTodo();
+            actualizarSelectorObras();
+            cargarObraEnPantalla();
+        }
+
+        function renombrarObraActiva(nuevoNombre) {
+            if (!nuevoNombre.trim()) return;
+            baseDatosObras[obraActivaID].nombre = nuevoNombre.trim();
+            guardarTodo();
+            actualizarSelectorObras();
+        }
+
+        function guardarMetadataObra() {
+            baseDatosObras[obraActivaID].sonometro = document.getElementById('sonometro').value;
+            guardarTodo();
+        }
+
+        function renderTabla() {
+            const tbody = document.getElementById('tabla-body');
+            tbody.innerHTML = '';
+            const obra = baseDatosObras[obraActivaID];
+
+            obra.listaMedidas.forEach((m, index) => {
+                const tr = document.createElement('tr');
+                if (m.completado) tr.classList.add('row-completada');
+
+                tr.innerHTML = `
+                    <td class="col-orden">
+                        ${m.numOrden ? `<span class="badge-orden">${m.numOrden}</span>` : ''}
+                    </td>
+                    <td class="col-medida">
+                        <input type="text" value="${m.medida}" style="font-weight: bold; font-size: 0.72rem;" onchange="actualizarCampo(${index}, 'medida', this.value)">
+                    </td>
+                    
+                    <td class="col-recinto td-emision">
+                        <input type="text" class="input-recinto" readonly placeholder="Elegir..." value="${m.emisionRecinto}" onclick="abrirModalRecinto(${index}, 'emisionRecinto')">
+                    </td>
+                    <td class="col-compacta td-emision">
+                        <input type="text" class="input-vivienda" value="${m.emisionVivienda}" onchange="actualizarCampo(${index}, 'emisionVivienda', this.value.toUpperCase())" oninput="this.value = this.value.toUpperCase()">
+                    </td>
+
+                    <td class="col-recinto td-recepcion">
+                        <input type="text" class="input-recinto" readonly placeholder="Elegir..." value="${m.recepcionRecinto}" onclick="abrirModalRecinto(${index}, 'recepcionRecinto')">
+                    </td>
+                    <td class="col-compacta td-recepcion">
+                        <input type="text" class="input-vivienda" value="${m.recepcionVivienda}" onchange="actualizarCampo(${index}, 'recepcionVivienda', this.value.toUpperCase())" oninput="this.value = this.value.toUpperCase()">
+                    </td>
+
+                    <td class="col-compacta"><input type="text" value="${m.emisionEscalera}" onchange="actualizarCampo(${index}, 'emisionEscalera', this.value)"></td>
+
+                    <td class="action-cell no-print col-accion" style="text-align: center;">
+                        ${!m.completado ? 
+                            `<button class="btn-save" onclick="concluirLinea(${index})">✓ OK</button>` : 
+                            `<button class="btn-print" onclick="editarLinea(${index})" title="Editar">✏️</button>`
+                        }
+                    </td>
+
+                    <td class="col-notas"><input type="text" value="${m.notas}" onchange="actualizarCampo(${index}, 'notas', this.value)"></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function abrirModalRecinto(index, campo) {
+            const obra = baseDatosObras[obraActivaID];
+            if (obra.listaMedidas[index].completado) return;
+            indexModalActivo = index;
+            campoModalActivo = campo;
+            document.getElementById('input-recinto-custom').value = '';
+            document.getElementById('modal-titulo').textContent = `${obra.listaMedidas[index].medida} — ${campo === 'emisionRecinto' ? 'Emisión' : 'Recepción'}`;
+            document.getElementById('modal-recinto').style.display = 'flex';
+        }
+
+        function cerrarModal() {
+            document.getElementById('modal-recinto').style.display = 'none';
+        }
+
+        function seleccionarOpcionModal(valor) {
+            if (indexModalActivo !== null && campoModalActivo) {
+                actualizarCampo(indexModalActivo, campoModalActivo, valor);
+                renderTabla();
+            }
+            cerrarModal();
+        }
+
+        function aplicarCustomModal() {
+            const val = document.getElementById('input-recinto-custom').value.trim();
+            if (val && indexModalActivo !== null && campoModalActivo) {
+                actualizarCampo(indexModalActivo, campoModalActivo, val);
+                renderTabla();
+            }
+            cerrarModal();
+        }
+
+        function actualizarCampo(index, campo, valor) {
+            baseDatosObras[obraActivaID].listaMedidas[index][campo] = valor;
+            guardarTodo();
+        }
+
+        function concluirLinea(index) {
+            const obra = baseDatosObras[obraActivaID];
+            obra.contadorOrden++;
+            obra.listaMedidas[index].numOrden = obra.contadorOrden;
+            obra.listaMedidas[index].completado = true;
+
+            const elementoCompletado = obra.listaMedidas.splice(index, 1)[0];
+            
+            const completados = obra.listaMedidas.filter(m => m.completado);
+            const pendientes = obra.listaMedidas.filter(m => !m.completado);
+
+            completados.push(elementoCompletado);
+            completados.sort((a, b) => a.numOrden - b.numOrden);
+
+            obra.listaMedidas = [...completados, ...pendientes];
+
+            guardarTodo();
+            renderTabla();
+        }
+
+        function editarLinea(index) {
+            baseDatosObras[obraActivaID].listaMedidas[index].completado = false;
+            guardarTodo();
+            renderTabla();
+        }
+
+        function guardarTodo() {
+            localStorage.setItem('acustica_multiobra_v4', JSON.stringify(baseDatosObras));
+            localStorage.setItem('acustica_obra_activa_id_v4', obraActivaID);
+        }
+
+        function obtenerTextoCSV() {
+            const obra = baseDatosObras[obraActivaID];
+            const completadas = obra.listaMedidas.filter(m => m.completado);
+            let csv = "\uFEFFNum_Orden;Medida;Emision_Recinto;Emision_Vivienda;Recepcion_Recinto;Recepcion_Vivienda;Escalera_Zaguan;Notas\n";
+
+            completadas.forEach(m => {
+                csv += `${m.numOrden};"${m.medida}";"${m.emisionRecinto}";"${m.emisionVivienda}";"${m.recepcionRecinto}";"${m.recepcionVivienda}";"${m.emisionEscalera}";"${m.notas}"\n`;
+            });
+            return csv;
+        }
+
+        async function compartirRespaldoRapido() {
+            const obra = baseDatosObras[obraActivaID];
+            const completadas = obra.listaMedidas.filter(m => m.completado);
+            
+            if (completadas.length === 0) {
+                alert('No hay medidas concluidas aún para enviar.');
+                return;
+            }
+
+            const nombreArchivo = `Mediciones_${obra.nombre.replace(/[^a-z0-9]/gi, '_')}.csv`;
+            const csvContent = obtenerTextoCSV();
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const file = new File([blob], nombreArchivo, { type: 'text/csv' });
+
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({
+                        title: `Respaldo Acústica: ${obra.nombre}`,
+                        text: `Respaldo de ${completadas.length} medidas acústicas registradas en obra.`,
+                        files: [file]
+                    });
+                } catch (err) {
+                    if (err.name !== 'AbortError') alert('Error al compartir archivo.');
+                }
+            } else {
+                document.getElementById('btn-export-csv').click();
+            }
+        }
+
+        document.getElementById('btn-export-csv').addEventListener('click', () => {
+            const obra = baseDatosObras[obraActivaID];
+            const csvContent = "data:text/csv;charset=utf-8," + encodeURIComponent(obtenerTextoCSV());
+            const link = document.createElement("a");
+            link.href = csvContent;
+            link.download = `Mediciones_${obra.nombre.replace(/[^a-z0-9]/gi, '_')}.csv`;
+            link.click();
+        });
+
+        document.getElementById('btn-imprimir').addEventListener('click', () => {
+            window.print();
+        });
+
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            if (confirm('¿Deseas reiniciar todas las medidas de la obra activa?')) {
+                const nVal = prompt("Indica de nuevo el número base de medidas N:", "4") || 4;
+                baseDatosObras[obraActivaID].contadorOrden = 0;
+                baseDatosObras[obraActivaID].listaMedidas = generarListaDinamica(nVal);
+                guardarTodo();
+                renderTabla();
+            }
+        });
+
+        function registrarServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                const swCode = `
+                    self.addEventListener('install', e => e.waitUntil(self.skipWaiting()));
+                    self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+                    self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => caches.match(e.request))));
+                `;
+                const blob = new Blob([swCode], { type: 'text/javascript' });
+                navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+            }
+        }
+    </script>
+</body>
+</html>
