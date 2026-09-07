@@ -257,6 +257,11 @@
         </table>
     </div>
 
+    <!-- BOTÓN PARA AÑADIR NUEVAS MEDIDAS EN CUALQUIER MOMENTO -->
+    <div class="no-print" style="margin-top: 6px; display: flex; justify-content: flex-end;">
+        <button class="btn-new" onclick="agregarNuevaMedidaExtra()" style="padding: 8px 12px; font-size: 0.85rem;">+ Añadir Medida Extra</button>
+    </div>
+
     <!-- MODAL POPUP PARA SELECCIONAR RECINTO -->
     <div id="modal-recinto" class="modal-overlay">
         <div class="modal-card">
@@ -410,6 +415,31 @@
             }
         }
 
+        // FUNCIÓN PARA AÑADIR UNA LÍNEA DE MEDIDA EXTRA SOBRE LA MARCHA
+        function agregarNuevaMedidaExtra() {
+            const obra = baseDatosObras[obraActivaID];
+            if (!obra) return;
+
+            const nombreMedida = prompt("Nombre para la nueva medida extra:", "Fachada Extra");
+            if (!nombreMedida || !nombreMedida.trim()) return;
+
+            obra.listaMedidas.push({
+                idOriginal: obra.listaMedidas.length,
+                numOrden: null,
+                medida: nombreMedida.trim(),
+                emisionRecinto: '',
+                emisionVivienda: '',
+                recepcionRecinto: '',
+                recepcionVivienda: '',
+                emisionEscalera: '',
+                notas: '',
+                completado: false
+            });
+
+            guardarTodo();
+            renderTabla();
+        }
+
         function renombrarObraActiva(nuevoNombre) {
             if (!nuevoNombre.trim()) return;
             baseDatosObras[obraActivaID].nombre = nuevoNombre.trim();
@@ -504,12 +534,10 @@
             guardarTodo();
         }
 
-        // CORRECCIÓN: Mantener inalterable el Nº de Orden original una vez asignado
         function concluirLinea(index) {
             const obra = baseDatosObras[obraActivaID];
             const elemento = obra.listaMedidas[index];
 
-            // Si nunca se le asignó orden, se le asigna el siguiente disponible
             if (!elemento.numOrden) {
                 obra.contadorOrden++;
                 elemento.numOrden = obra.contadorOrden;
@@ -517,7 +545,6 @@
             
             elemento.completado = true;
 
-            // Reorganizar la lista: completadas primero (ordenadas estrictamente por su Nº de Orden), pendientes después
             const completados = obra.listaMedidas.filter(m => m.completado).sort((a, b) => a.numOrden - b.numOrden);
             const pendientes = obra.listaMedidas.filter(m => !m.completado);
 
@@ -527,7 +554,6 @@
             renderTabla();
         }
 
-        // CORRECCIÓN: Al pulsar editar, se abre el candado pero se CONSERVA su Nº de Orden
         function editarLinea(index) {
             baseDatosObras[obraActivaID].listaMedidas[index].completado = false;
             guardarTodo();
