@@ -207,7 +207,6 @@
                 <div style="display: flex; gap: 4px;">
                     <select id="select-obras" onchange="cambiarObraActiva(this.value)" style="font-weight: bold; color: var(--primary);"></select>
                     <button class="btn-new" onclick="crearNuevaObra()">+ Nueva</button>
-                    <!-- BOTÓN ELIMINAR OBRA SELECCIONADA -->
                     <button class="btn-danger" onclick="eliminarObraActiva()" title="Eliminar este expediente definitivo">🗑️</button>
                 </div>
             </div>
@@ -391,7 +390,6 @@
             cargarObraEnPantalla();
         }
 
-        // FUNCIÓN PARA ELIMINAR EXPEDIENTES / OBRAS COMPLETADAS
         function eliminarObraActiva() {
             const obra = baseDatosObras[obraActivaID];
             if (!obra) return;
@@ -506,19 +504,22 @@
             guardarTodo();
         }
 
+        // CORRECCIÓN: Mantener inalterable el Nº de Orden original una vez asignado
         function concluirLinea(index) {
             const obra = baseDatosObras[obraActivaID];
-            obra.contadorOrden++;
-            obra.listaMedidas[index].numOrden = obra.contadorOrden;
-            obra.listaMedidas[index].completado = true;
+            const elemento = obra.listaMedidas[index];
 
-            const elementoCompletado = obra.listaMedidas.splice(index, 1)[0];
+            // Si nunca se le asignó orden, se le asigna el siguiente disponible
+            if (!elemento.numOrden) {
+                obra.contadorOrden++;
+                elemento.numOrden = obra.contadorOrden;
+            }
             
-            const completados = obra.listaMedidas.filter(m => m.completado);
-            const pendientes = obra.listaMedidas.filter(m => !m.completado);
+            elemento.completado = true;
 
-            completados.push(elementoCompletado);
-            completados.sort((a, b) => a.numOrden - b.numOrden);
+            // Reorganizar la lista: completadas primero (ordenadas estrictamente por su Nº de Orden), pendientes después
+            const completados = obra.listaMedidas.filter(m => m.completado).sort((a, b) => a.numOrden - b.numOrden);
+            const pendientes = obra.listaMedidas.filter(m => !m.completado);
 
             obra.listaMedidas = [...completados, ...pendientes];
 
@@ -526,6 +527,7 @@
             renderTabla();
         }
 
+        // CORRECCIÓN: Al pulsar editar, se abre el candado pero se CONSERVA su Nº de Orden
         function editarLinea(index) {
             baseDatosObras[obraActivaID].listaMedidas[index].completado = false;
             guardarTodo();
